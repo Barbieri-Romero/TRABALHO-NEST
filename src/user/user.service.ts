@@ -1,18 +1,23 @@
+// src/user/user.service.ts
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import * as bcrypt from 'bcrypt';
+import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
-import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User)
     private readonly repository: Repository<User>,
-  ) {}
-  create(dto: CreateUserDto) {
-    const user = this.repository.create(dto);
+  ) { }
+
+  async create(dto: CreateUserDto) {
+    // Criptografa a senha
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const user = this.repository.create({ ...dto, password: hashedPassword });
     return this.repository.save(user);
   }
 
@@ -22,6 +27,10 @@ export class UserService {
 
   findOne(id: number) {
     return this.repository.findOneBy({ id });
+  }
+
+  async findByEmail(email: string): Promise<User | undefined> {
+    return this.repository.findOneBy({ email });
   }
 
   async update(id: number, dto: UpdateUserDto) {
